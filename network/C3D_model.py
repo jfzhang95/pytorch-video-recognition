@@ -81,6 +81,28 @@ class C3D(nn.Module):
             else:
                 s_dict[name] = p_dict[name]
 
+def get_1x_lr_params(model):
+    """
+    This generator returns all the parameters for the conv layer of the net.
+    """
+    b = [model.conv1, model.conv2, model.conv3a, model.conv3b, model.conv4a, model.conv4b,
+         model.conv5a, model.conv5b]
+    for i in range(len(b)):
+        for k in b[i].parameters():
+            if k.requires_grad:
+                yield k
+
+
+def get_10x_lr_params(model):
+    """
+    This generator returns all the parameters for the fc layer of the net.
+    """
+    b = [model.fc6, model.fc7, model.fc8]
+    for j in range(len(b)):
+        for k in b[j].parameters():
+            if k.requires_grad:
+                yield k
+
 if __name__ == "__main__":
     inputs = torch.rand(1, 3, 16, 112, 112)
     net = C3D(num_classes=101, pretrained=True)

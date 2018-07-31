@@ -22,6 +22,7 @@ resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True # See evolution of the test set when training
 nTestInterval = 10 # Run on test set every nTestInterval epochs
 snapshot = 20 # Store a model every snapshot epochs
+lr = 1e-2 # Learning rate
 
 dataset = 'hmdb51'
 
@@ -43,28 +44,34 @@ else:
     run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
 
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
-modelName = 'C3D'
+modelName = 'C3D' # options: C3D or R2Plus1D
 
 
-def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num_epochs=nEpochs,
-                save_epoch=snapshot, useTest=useTest, test_interval=nTestInterval):
+def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=lr,
+                num_epochs=nEpochs, save_epoch=snapshot, useTest=useTest, test_interval=nTestInterval):
     """
         Args:
             num_classes (int): Number of classes in the data
-            num_epochs (int, optional): Number of epochs to train for. Defaults to 45.
+            num_epochs (int, optional): Number of epochs to train for.
     """
 
     if modelName == 'C3D':
         model = C3D_model.C3D(num_classes=num_classes, pretrained=True)
+        train_params = [{'params': C3D_model.get_1x_lr_params(model), 'lr': lr},
+                        {'params': C3D_model.get_10x_lr_params(model), 'lr': lr * 10}]
     elif modelName == 'R2Plus1D':
         model = R2Plus1D_model.R2Plus1DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
+        train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr': lr},
+                        {'params': R2Plus1D_model.get_10x_lr_params(model), 'lr': lr * 10}]
+    else:
+        raise NotImplementedError
     criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
-    optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10,
                                           gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
 
     if resume_epoch == 0:
-        print("Training C3D from scratch...")
+        print("Training {} from scratch...".format(modelName))
     else:
         checkpoint = torch.load(os.path.join(save_dir, 'models', modelName + '_epoch-' + str(resume_epoch - 1) + '.pth'),
                        map_location=lambda storage, loc: storage)   # Load all tensors onto the CPU
@@ -77,9 +84,9 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
     writer = SummaryWriter(log_dir=log_dir)
 
-    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
-    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
-    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=16, num_workers=4)
+    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=10, shuffle=True, num_workers=4)
+    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=10, shuffle=True, num_workers=4)
+    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=10, num_workers=4)
 
     trainval_loaders = {'train': train_dataloader, 'val': val_dataloader}
     trainval_sizes = {x: len(trainval_loaders[x].dataset) for x in ['train', 'val']}
@@ -134,7 +141,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num
                 writer.add_scalar('data/val_loss_epoch', epoch_loss, epoch)
                 writer.add_scalar('data/val_acc_epoch', epoch_acc, epoch)
 
-            print("[{}] Loss: {} Acc: {}".format(phase, epoch_loss, epoch_acc))
+            print("[{}] Epoch: {}/{} Loss: {} Acc: {}".format(phase, epoch+1, nEpochs, epoch_loss, epoch_acc))
             stop_time = timeit.default_timer()
             print("Execution time: " + str(stop_time - start_time) + "\n")
 
@@ -170,7 +177,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num
             writer.add_scalar('data/test_loss_epoch', epoch_loss, epoch)
             writer.add_scalar('data/test_acc_epoch', epoch_acc, epoch)
 
-            print("[{}] Loss: {} Acc: {}".format('test', epoch_loss, epoch_acc))
+            print("[test] Epoch: {}/{} Loss: {} Acc: {}".format(epoch+1, nEpochs, epoch_loss, epoch_acc))
             stop_time = timeit.default_timer()
             print("Execution time: " + str(stop_time - start_time) + "\n")
 
@@ -178,4 +185,4 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num
 
 
 if __name__ == "__main__":
-    train_model(num_classes=51)
+    train_model()

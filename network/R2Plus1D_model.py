@@ -212,3 +212,24 @@ class R2Plus1DClassifier(nn.Module):
         x = self.linear(x)
 
         return x
+
+def get_1x_lr_params(model):
+    """
+    This generator returns all the parameters for the conv layer of the net.
+    """
+    b = [model.res2plus1d]
+    for i in range(len(b)):
+        for k in b[i].parameters():
+            if k.requires_grad:
+                yield k
+
+
+def get_10x_lr_params(model):
+    """
+    This generator returns all the parameters for the fc layer of the net.
+    """
+    b = [model.linear]
+    for j in range(len(b)):
+        for k in b[j].parameters():
+            if k.requires_grad:
+                yield k
