@@ -17,14 +17,14 @@ from network import C3D_model, R2Plus1D_model
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device being used:", device)
 
-nEpochs = 100  # Number of epochs for training
+nEpochs = 200  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True # See evolution of the test set when training
-nTestInterval = 10 # Run on test set every nTestInterval epochs
-snapshot = 20 # Store a model every snapshot epochs
+nTestInterval = 40 # Run on test set every nTestInterval epochs
+snapshot = 40 # Store a model every snapshot epochs
 lr = 1e-2 # Learning rate
 
-dataset = 'hmdb51'
+dataset = 'ucf101'
 
 if dataset == 'hmdb51':
     num_classes=51
@@ -84,9 +84,10 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
     writer = SummaryWriter(log_dir=log_dir)
 
-    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=10, shuffle=True, num_workers=4)
-    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=10, shuffle=True, num_workers=4)
-    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=10, num_workers=4)
+    print('Training model on {} dataset...'.format(dataset))
+    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
+    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
+    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=16, num_workers=4)
 
     trainval_loaders = {'train': train_dataloader, 'val': val_dataloader}
     trainval_sizes = {x: len(trainval_loaders[x].dataset) for x in ['train', 'val']}

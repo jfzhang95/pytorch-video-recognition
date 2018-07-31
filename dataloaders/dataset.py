@@ -18,7 +18,7 @@ class VideoDataset(Dataset):
             split (str): Determines which folder of the directory the dataset will read from. Defaults to 'train'.
             clip_len (int): Determines how many frames are there in each clip. Defaults to 16.
             preprocess (bool): Determines whether to preprocess dataset. Default is False.
-        """
+    """
 
     def __init__(self, dataset='ucf101', split='train', clip_len=16, preprocess=False):
         self.root_dir, self.output_dir = Path.db_dir(dataset)
@@ -171,8 +171,9 @@ class VideoDataset(Dataset):
         frame_count = len(frames)
         buffer = np.empty((frame_count, self.resize_height, self.resize_width, 3), np.dtype('float32'))
         for i, frame_name in enumerate(frames):
-            frame = cv2.imread(frame_name)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = np.array(cv2.imread(frame_name)).astype(np.float64)
+            frame -= np.array([[[90.0, 98.0, 102.0]]])
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             buffer[i] = frame
 
         # convert from [T, H, W, C] format to [C, T, H, W] (what PyTorch uses)

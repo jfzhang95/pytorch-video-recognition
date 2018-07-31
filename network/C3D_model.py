@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class C3D(nn.Module):
     """
-    The C3D network as described in [1].
+    The C3D network.
     """
 
     def __init__(self, num_classes, pretrained=False):
@@ -72,21 +72,54 @@ class C3D(nn.Module):
         return probs
 
     def __load_pretrained_weights(self):
-        """Initialiaze."""
-        p_dict = torch.load('/path/to/Models/c3d.pickle')
+        """Initialiaze network."""
+        corresp_name = {
+                        # Conv1
+                        "features.0.weight": "conv1.weight",
+                        "features.0.bias": "conv1.bias",
+                        # Conv2
+                        "features.3.weight": "conv2.weight",
+                        "features.3.bias": "conv2.bias",
+                        # Conv3a
+                        "features.6.weight": "conv3a.weight",
+                        "features.6.bias": "conv3a.bias",
+                        # Conv3b
+                        "features.8.weight": "conv3b.weight",
+                        "features.8.bias": "conv3b.bias",
+                        # Conv4a
+                        "features.11.weight": "conv4a.weight",
+                        "features.11.bias": "conv4a.bias",
+                        # Conv4b
+                        "features.13.weight": "conv4b.weight",
+                        "features.13.bias": "conv4b.bias",
+                        # Conv5a
+                        "features.16.weight": "conv5a.weight",
+                        "features.16.bias": "conv5a.bias",
+                         # Conv5b
+                        "features.18.weight": "conv5b.weight",
+                        "features.18.bias": "conv5b.bias",
+                        # fc6
+                        "classifier.0.weight": "fc6.weight",
+                        "classifier.0.bias": "fc6.bias",
+                        # fc7
+                        "classifier.3.weight": "fc7.weight",
+                        "classifier.3.bias": "fc7.bias",
+                        }
+
+        p_dict = torch.load('/path/to/Models/ucf101-caffe.pth')
         s_dict = self.state_dict()
         for name in p_dict:
-            if 'fc8' in name:
+            if name not in corresp_name:
                 continue
-            else:
-                s_dict[name] = p_dict[name]
+            s_dict[corresp_name[name]] = p_dict[name]
+        self.load_state_dict(s_dict)
 
 def get_1x_lr_params(model):
     """
-    This generator returns all the parameters for the conv layer of the net.
+    This generator returns all the parameters for conv and two fc layers of the net.
     """
     b = [model.conv1, model.conv2, model.conv3a, model.conv3b, model.conv4a, model.conv4b,
-         model.conv5a, model.conv5b]
+         model.conv5a, model.conv5b, model.fc6, model.fc7]
     for i in range(len(b)):
         for k in b[i].parameters():
             if k.requires_grad:
@@ -95,9 +128,9 @@ def get_1x_lr_params(model):
 
 def get_10x_lr_params(model):
     """
-    This generator returns all the parameters for the fc layer of the net.
+    This generator returns all the parameters for the last fc layer of the net.
     """
-    b = [model.fc6, model.fc7, model.fc8]
+    b = [model.fc8]
     for j in range(len(b)):
         for k in b[j].parameters():
             if k.requires_grad:
