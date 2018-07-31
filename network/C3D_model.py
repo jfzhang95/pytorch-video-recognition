@@ -42,34 +42,33 @@ class C3D(nn.Module):
 
     def forward(self, x):
 
-        h = self.relu(self.conv1(x))
-        h = self.pool1(h)
+        x = self.relu(self.conv1(x))
+        x = self.pool1(x)
 
-        h = self.relu(self.conv2(h))
-        h = self.pool2(h)
+        x = self.relu(self.conv2(x))
+        x = self.pool2(x)
 
-        h = self.relu(self.conv3a(h))
-        h = self.relu(self.conv3b(h))
-        h = self.pool3(h)
+        x = self.relu(self.conv3a(x))
+        x = self.relu(self.conv3b(x))
+        x = self.pool3(x)
 
-        h = self.relu(self.conv4a(h))
-        h = self.relu(self.conv4b(h))
-        h = self.pool4(h)
+        x = self.relu(self.conv4a(x))
+        x = self.relu(self.conv4b(x))
+        x = self.pool4(x)
 
-        h = self.relu(self.conv5a(h))
-        h = self.relu(self.conv5b(h))
-        h = self.pool5(h)
+        x = self.relu(self.conv5a(x))
+        x = self.relu(self.conv5b(x))
+        x = self.pool5(x)
 
-        h = h.view(-1, 8192)
-        h = self.relu(self.fc6(h))
-        h = self.dropout(h)
-        h = self.relu(self.fc7(h))
-        h = self.dropout(h)
+        x = x.view(-1, 8192)
+        x = self.relu(self.fc6(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc7(x))
+        x = self.dropout(x)
 
-        logits = self.fc8(h)
-        probs = self.softmax(logits)
+        logits = self.fc8(x)
 
-        return probs
+        return logits
 
     def __load_pretrained_weights(self):
         """Initialiaze network."""

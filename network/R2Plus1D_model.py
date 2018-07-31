@@ -201,17 +201,23 @@ class R2Plus1DClassifier(nn.Module):
             block_type (Module, optional): Type of block that is to be used to form the layers. Default: SpatioTemporalResBlock.
         """
 
-    def __init__(self, num_classes, layer_sizes, block_type=SpatioTemporalResBlock):
+    def __init__(self, num_classes, layer_sizes, block_type=SpatioTemporalResBlock, pretrained=False):
         super(R2Plus1DClassifier, self).__init__()
 
         self.res2plus1d = R2Plus1DNet(layer_sizes, block_type)
         self.linear = nn.Linear(512, num_classes)
 
+        if pretrained:
+            self.__load_pretrained_weights()
+
     def forward(self, x):
         x = self.res2plus1d(x)
-        x = self.linear(x)
+        logits = self.linear(x)
 
-        return x
+        return logits
+
+    def __load_pretrained_weights(self):
+        pass
 
 def get_1x_lr_params(model):
     """

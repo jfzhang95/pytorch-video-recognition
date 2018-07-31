@@ -3,12 +3,13 @@ from datetime import datetime
 import socket
 import os
 import glob
+from tqdm import tqdm
 
 import torch
 from tensorboardX import SummaryWriter
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+from torch.autograd import Variable
 
 from dataloaders.dataset import VideoDataset
 from network import C3D_model, R2Plus1D_model
@@ -24,7 +25,7 @@ nTestInterval = 40 # Run on test set every nTestInterval epochs
 snapshot = 40 # Store a model every snapshot epochs
 lr = 1e-2 # Learning rate
 
-dataset = 'ucf101'
+dataset = 'hmdb51'
 
 if dataset == 'hmdb51':
     num_classes=51
@@ -85,8 +86,8 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
     writer = SummaryWriter(log_dir=log_dir)
 
     print('Training model on {} dataset...'.format(dataset))
-    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
-    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=16, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train',clip_len=16), batch_size=16, shuffle=True, num_workers=4)
+    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val',  clip_len=16), batch_size=16, num_workers=4)
     test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=16, num_workers=4)
 
     trainval_loaders = {'train': train_dataloader, 'val': val_dataloader}
@@ -113,8 +114,8 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
 
             for inputs, labels in tqdm(trainval_loaders[phase]):
                 # move inputs and labels to the device the training is taking place on
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+                inputs = Variable(inputs, requires_grad=True).to(device)
+                labels = Variable(labels).to(device)
                 optimizer.zero_grad()
 
                 # keep intermediate states iff backpropagation will be performed. If false,
@@ -122,8 +123,11 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 # the least amount of memory possible.
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
-                    preds = torch.max(outputs, 1)[1]
+                    probs = nn.Softmax(dim=1)(outputs)
+                    preds = torch.max(probs, 1)[1]
                     loss = criterion(outputs, labels)
+                    print(outputs.size())
+                    print(labels.size())
 
                     if phase == 'train':
                         loss.backward()
@@ -155,6 +159,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
             print("Save model at {}\n".format(os.path.join(save_dir, 'models', modelName + '_epoch-' + str(epoch) + '.pth.tar')))
 
         if useTest and epoch % test_interval == (test_interval - 1):
+            model.eval()
             start_time = timeit.default_timer()
 
             running_loss = 0.0
@@ -166,7 +171,8 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
 
                 with torch.no_grad():
                     outputs = model(inputs)
-                preds = torch.max(outputs, 1)[1]
+                probs = nn.Softmax(dim=1)(outputs)
+                preds = torch.max(probs, 1)[1]
                 loss = criterion(outputs, labels)
 
                 running_loss += loss.item() * inputs.size(0)
