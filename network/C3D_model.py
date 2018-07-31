@@ -35,7 +35,6 @@ class C3D(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
 
         self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
 
         if pretrained:
             self.__load_pretrained_weights()

@@ -1,6 +1,7 @@
 import os
 from sklearn.model_selection import train_test_split
 
+import torch
 import cv2
 import numpy as np
 from torch.utils.data import Dataset
@@ -59,8 +60,9 @@ class VideoDataset(Dataset):
         buffer = self.load_frames(self.fnames[index])
         buffer = self.crop(buffer, self.clip_len, self.crop_size)
         # buffer = self.normalize(buffer)
+        labels = np.array(self.label_array[index])
 
-        return buffer, self.label_array[index]
+        return torch.from_numpy(buffer), torch.from_numpy(labels)
 
     def check_integrity(self):
         if not os.path.exists(self.root_dir):

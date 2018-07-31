@@ -23,15 +23,16 @@ resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True # See evolution of the test set when training
 nTestInterval = 40 # Run on test set every nTestInterval epochs
 snapshot = 40 # Store a model every snapshot epochs
-lr = 1e-2 # Learning rate
+lr = 1e-3 # Learning rate
 
-dataset = 'hmdb51'
+dataset = 'hmdb51' # Options: hmdb51 or ucf101
 
 if dataset == 'hmdb51':
     num_classes=51
 elif dataset == 'ucf101':
     num_classes = 101
 else:
+    print('We only implemented hmdb and ucf datasets.')
     raise NotImplementedError
 
 save_dir_root = os.path.join(os.path.dirname(os.path.abspath(__file__)))
@@ -45,7 +46,7 @@ else:
     run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
 
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
-modelName = 'C3D' # options: C3D or R2Plus1D
+modelName = 'C3D' # Options: C3D or R2Plus1D
 
 
 def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=lr,
@@ -65,6 +66,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
         train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr': lr},
                         {'params': R2Plus1D_model.get_10x_lr_params(model), 'lr': lr * 10}]
     else:
+        print('We only implemented C3D and R2Plus1D models.')
         raise NotImplementedError
     criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
     optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
@@ -80,6 +82,8 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
             os.path.join(save_dir, 'models', modelName + '_epoch-' + str(resume_epoch - 1) + '.pth')))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['opt_dict'])
+
+    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.to(device)
 
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
@@ -118,20 +122,14 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 labels = Variable(labels).to(device)
                 optimizer.zero_grad()
 
-                # keep intermediate states iff backpropagation will be performed. If false,
-                # then all intermediate states will be thrown away during evaluation, to use
-                # the least amount of memory possible.
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
-                    probs = nn.Softmax(dim=1)(outputs)
-                    preds = torch.max(probs, 1)[1]
-                    loss = criterion(outputs, labels)
-                    print(outputs.size())
-                    print(labels.size())
+                outputs = model(inputs)
+                probs = nn.Softmax(dim=1)(outputs)
+                preds = torch.max(probs, 1)[1]
+                loss = criterion(outputs, labels)
 
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                if phase == 'train':
+                    loss.backward()
+                    optimizer.step()
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
