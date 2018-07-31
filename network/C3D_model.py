@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from mypath import Path
 
 class C3D(nn.Module):
     """
@@ -104,7 +104,7 @@ class C3D(nn.Module):
                         "classifier.3.bias": "fc7.bias",
                         }
 
-        p_dict = torch.load('/path/to/Models/ucf101-caffe.pth')
+        p_dict = torch.load(Path.model_dir())
         s_dict = self.state_dict()
         for name in p_dict:
             if name not in corresp_name:
