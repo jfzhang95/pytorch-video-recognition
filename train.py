@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataloaders.dataset import VideoDataset
-from network import C3D_model
+from network import C3D_model, R2Plus1D_model
 
 # Use GPU if available else revert to CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -52,12 +52,14 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, num
         Args:
             num_classes (int): Number of classes in the data
             num_epochs (int, optional): Number of epochs to train for. Defaults to 45.
-            save (bool, optional): If true, the model will be saved to path. Defaults to True.
     """
 
-    model = C3D_model.C3D(num_classes=num_classes, pretrained=True)
+    if modelName == 'C3D':
+        model = C3D_model.C3D(num_classes=num_classes, pretrained=True)
+    elif modelName == 'R2Plus1D':
+        model = R2Plus1D_model.R2Plus1DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
     criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10,
                                           gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
 
