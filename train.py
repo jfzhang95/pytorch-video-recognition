@@ -25,7 +25,7 @@ nTestInterval = 40 # Run on test set every nTestInterval epochs
 snapshot = 40 # Store a model every snapshot epochs
 lr = 1e-3 # Learning rate
 
-dataset = 'hmdb51' # Options: hmdb51 or ucf101
+dataset = 'ucf101' # Options: hmdb51 or ucf101
 
 if dataset == 'hmdb51':
     num_classes=51
@@ -76,10 +76,10 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
     else:
-        checkpoint = torch.load(os.path.join(save_dir, 'models', modelName + '_epoch-' + str(resume_epoch - 1) + '.pth'),
+        checkpoint = torch.load(os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(resume_epoch - 1) + '.pth.tar'),
                        map_location=lambda storage, loc: storage)   # Load all tensors onto the CPU
         print("Initializing weights from: {}...".format(
-            os.path.join(save_dir, 'models', modelName + '_epoch-' + str(resume_epoch - 1) + '.pth')))
+            os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(resume_epoch - 1) + '.pth.tar')))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['opt_dict'])
 
@@ -153,8 +153,8 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'opt_dict': optimizer.state_dict(),
-            }, os.path.join(save_dir, 'models', modelName + '_epoch-' + str(epoch) + '.pth.tar'))
-            print("Save model at {}\n".format(os.path.join(save_dir, 'models', modelName + '_epoch-' + str(epoch) + '.pth.tar')))
+            }, os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(epoch) + '.pth.tar'))
+            print("Save model at {}\n".format(os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(epoch) + '.pth.tar')))
 
         if useTest and epoch % test_interval == (test_interval - 1):
             model.eval()

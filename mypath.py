@@ -20,5 +20,6 @@ class Path(object):
             print('Database {} not available.'.format(database))
             raise NotImplementedError
 
-    def model_dir(self):
+    @staticmethod
+    def model_dir():
         return '/path/to/Models/c3d-pretrained.pth'
