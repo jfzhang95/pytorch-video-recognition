@@ -36,6 +36,8 @@ class C3D(nn.Module):
 
         self.relu = nn.ReLU()
 
+        self.__init_weight()
+
         if pretrained:
             self.__load_pretrained_weights()
 
@@ -111,6 +113,16 @@ class C3D(nn.Module):
                 continue
             s_dict[corresp_name[name]] = p_dict[name]
         self.load_state_dict(s_dict)
+
+    def __init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # m.weight.data.normal_(0, math.sqrt(2. / n))
+                torch.nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, nn.BatchNorm3d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
 def get_1x_lr_params(model):
     """
