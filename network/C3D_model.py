@@ -123,7 +123,6 @@ def get_1x_lr_params(model):
             if k.requires_grad:
                 yield k
 
-
 def get_10x_lr_params(model):
     """
     This generator returns all the parameters for the last fc layer of the net.

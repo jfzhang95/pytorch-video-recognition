@@ -18,11 +18,11 @@ from network import C3D_model, R2Plus1D_model
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device being used:", device)
 
-nEpochs = 200  # Number of epochs for training
+nEpochs = 100  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True # See evolution of the test set when training
-nTestInterval = 40 # Run on test set every nTestInterval epochs
-snapshot = 40 # Store a model every snapshot epochs
+nTestInterval = 25 # Run on test set every nTestInterval epochs
+snapshot = 25 # Store a model every snapshot epochs
 lr = 1e-3 # Learning rate
 
 dataset = 'ucf101' # Options: hmdb51 or ucf101
@@ -85,6 +85,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
 
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.to(device)
+    criterion.to(device)
 
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
     writer = SummaryWriter(log_dir=log_dir)
