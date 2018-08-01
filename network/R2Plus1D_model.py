@@ -1,5 +1,4 @@
 import math
-
 import torch.nn as nn
 from torch.nn.modules.utils import _triple
 
@@ -18,7 +17,7 @@ class SpatioTemporalConv(nn.Module):
         bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=False, first_conv=False):
         super(SpatioTemporalConv, self).__init__()
 
         # if ints are entered, convert them to iterables, 1 -> [1, 1, 1]
@@ -26,18 +25,18 @@ class SpatioTemporalConv(nn.Module):
         stride = _triple(stride)
         padding = _triple(padding)
 
-        if kernel_size[0] == 1 and padding[0] == 1:
+        if first_conv:
             # decomposing the parameters into spatial and temporal components by
             # masking out the values with the defaults on the axis that
             # won't be convolved over. This is necessary to avoid unintentional
             # behavior such as padding being added twice
-            spatial_kernel_size = (1, kernel_size[1], kernel_size[2])
+            spatial_kernel_size = kernel_size
             spatial_stride = (1, stride[1], stride[2])
-            spatial_padding = (0, padding[1], padding[2])
+            spatial_padding = padding
 
-            temporal_kernel_size = (kernel_size[0], 1, 1)
+            temporal_kernel_size = (3, 1, 1)
             temporal_stride = (stride[0], 1, 1)
-            temporal_padding = (padding[0], 0, 0)
+            temporal_padding = (1, 0, 0)
 
             # from the official code, first conv's intermed_channels = 45
             intermed_channels = 45
@@ -46,7 +45,8 @@ class SpatioTemporalConv(nn.Module):
             # spatial_kernel_size, followed by batch_norm and ReLU
             self.spatial_conv = nn.Conv3d(in_channels, intermed_channels, spatial_kernel_size,
                                           stride=spatial_stride, padding=spatial_padding, bias=bias)
-            self.bn = nn.BatchNorm3d(intermed_channels)
+            self.bn1 = nn.BatchNorm3d(intermed_channels)
+            self.bn2 = nn.BatchNorm3d(out_channels)
             self.relu = nn.ReLU()
 
             # the temporal conv is effectively a 1D conv, but has batch norm
@@ -66,8 +66,8 @@ class SpatioTemporalConv(nn.Module):
             spatial_padding =  (0, padding[1], padding[2])
 
             temporal_kernel_size = (kernel_size[0], 1, 1)
-            temporal_stride =  (stride[0], 1, 1)
-            temporal_padding =  (padding[0], 0, 0)
+            temporal_stride = (stride[0], 1, 1)
+            temporal_padding = (padding[0], 0, 0)
 
             # compute the number of intermediary channels (M) using formula
             # from the paper section 3.5
@@ -78,8 +78,7 @@ class SpatioTemporalConv(nn.Module):
             # spatial_kernel_size, followed by batch_norm and ReLU
             self.spatial_conv = nn.Conv3d(in_channels, intermed_channels, spatial_kernel_size,
                                         stride=spatial_stride, padding=spatial_padding, bias=bias)
-            self.bn = nn.BatchNorm3d(intermed_channels)
-            self.relu = nn.ReLU()
+            self.bn1 = nn.BatchNorm3d(intermed_channels)
 
             # the temporal conv is effectively a 1D conv, but has batch norm
             # and ReLU added inside the model constructor, not here. This is an
@@ -88,10 +87,14 @@ class SpatioTemporalConv(nn.Module):
             # other codebase
             self.temporal_conv = nn.Conv3d(intermed_channels, out_channels, temporal_kernel_size,
                                         stride=temporal_stride, padding=temporal_padding, bias=bias)
+            self.bn2 = nn.BatchNorm3d(out_channels)
+            self.relu = nn.ReLU()
+
+
 
     def forward(self, x):
-        x = self.relu(self.bn(self.spatial_conv(x)))
-        x = self.temporal_conv(x)
+        x = self.relu(self.bn1(self.spatial_conv(x)))
+        x = self.relu(self.bn2(self.temporal_conv(x)))
         return x
 
 
@@ -130,21 +133,20 @@ class SpatioTemporalResBlock(nn.Module):
             self.conv1 = SpatioTemporalConv(in_channels, out_channels, kernel_size, padding=padding)
 
         self.bn1 = nn.BatchNorm3d(out_channels)
-        self.relu1 = nn.ReLU()
+        self.relu = nn.ReLU()
 
         # standard conv->batchnorm->ReLU
         self.conv2 = SpatioTemporalConv(out_channels, out_channels, kernel_size, padding=padding)
         self.bn2 = nn.BatchNorm3d(out_channels)
-        self.outrelu = nn.ReLU()
 
     def forward(self, x):
-        res = self.relu1(self.bn1(self.conv1(x)))
+        res = self.relu(self.bn1(self.conv1(x)))
         res = self.bn2(self.conv2(res))
 
         if self.downsample:
             x = self.downsamplebn(self.downsampleconv(x))
 
-        return self.outrelu(x + res)
+        return self.relu(x + res)
 
 
 class SpatioTemporalResLayer(nn.Module):
@@ -196,7 +198,7 @@ class R2Plus1DNet(nn.Module):
         super(R2Plus1DNet, self).__init__()
 
         # first conv, with stride 1x2x2 and kernel size 1x7x7
-        self.conv1 = SpatioTemporalConv(3, 64, (1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3))
+        self.conv1 = SpatioTemporalConv(3, 64, (1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3), first_conv=True)
         # output of conv2 is same size as of conv1, no downsampling needed. kernel_size 3x3x3
         self.conv2 = SpatioTemporalResLayer(64, 64, 3, layer_sizes[0], block_type=block_type)
         # each of the final three layers doubles num_channels, while performing downsampling
@@ -260,7 +262,7 @@ class R2Plus1DClassifier(nn.Module):
             if isinstance(m, nn.Conv3d):
                 # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 # m.weight.data.normal_(0, math.sqrt(2. / n))
-                torch.nn.init.kaiming_normal_(m.weight)
+                nn.init.kaiming_normal_(m.weight)
             elif isinstance(m, nn.BatchNorm3d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
@@ -290,7 +292,7 @@ def get_10x_lr_params(model):
 if __name__ == "__main__":
     import torch
     inputs = torch.rand(1, 3, 16, 112, 112)
-    net = R2Plus1DClassifier(101, (2, 2, 2, 2), pretrained=False)
+    net = R2Plus1DClassifier(101, (2, 2, 2, 2), pretrained=True)
 
     outputs = net.forward(inputs)
     print(outputs.size())
