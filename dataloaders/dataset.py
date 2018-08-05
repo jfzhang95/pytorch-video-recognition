@@ -59,7 +59,8 @@ class VideoDataset(Dataset):
         # loading and preprocessing.
         buffer = self.load_frames(self.fnames[index])
         buffer = self.crop(buffer, self.clip_len, self.crop_size)
-        # buffer = self.normalize(buffer)
+        buffer = self.randomflip(buffer)
+        buffer = self.to_tensor(self.normalize(buffer))
         labels = np.array(self.label_array[index])
 
         return torch.from_numpy(buffer), torch.from_numpy(labels)
@@ -168,44 +169,52 @@ class VideoDataset(Dataset):
         # release the VideoCapture once it is no longer needed
         capture.release()
 
+    def randomflip(self, buffer):
+        """Horizontally flip the given image and ground truth randomly with a probability of 0.5."""
+
+        if np.random.random() < 0.5:
+            for i, frame in enumerate(buffer):
+                frame = cv2.flip(frame, flipCode=1)
+                buffer[i] = frame
+
+        return buffer
+
+
+    def normalize(self, buffer):
+        for i, frame in enumerate(buffer):
+            frame -= np.array([[[90.0, 98.0, 102.0]]])
+            buffer[i] = frame
+
+        return buffer
+
+    def to_tensor(self, buffer):
+        return buffer.transpose((3, 0, 1, 2))
+
     def load_frames(self, file_dir):
         frames = sorted([os.path.join(file_dir, img) for img in os.listdir(file_dir)])
         frame_count = len(frames)
         buffer = np.empty((frame_count, self.resize_height, self.resize_width, 3), np.dtype('float32'))
         for i, frame_name in enumerate(frames):
             frame = np.array(cv2.imread(frame_name)).astype(np.float64)
-            frame -= np.array([[[90.0, 98.0, 102.0]]])
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             buffer[i] = frame
-
-        # convert from [T, H, W, C] format to [C, T, H, W] (what PyTorch uses)
-        # T = Time, H = Height, W = Width, C = Channels
-        buffer = buffer.transpose((3, 0, 1, 2))
 
         return buffer
 
     def crop(self, buffer, clip_len, crop_size):
         # randomly select time index for temporal jittering
-        time_index = np.random.randint(buffer.shape[1] - clip_len)
+        time_index = np.random.randint(buffer.shape[0] - clip_len)
+
         # randomly select start indices in order to crop the video
-        height_index = np.random.randint(buffer.shape[2] - crop_size)
-        width_index = np.random.randint(buffer.shape[3] - crop_size)
+        height_index = np.random.randint(buffer.shape[1] - crop_size)
+        width_index = np.random.randint(buffer.shape[2] - crop_size)
 
         # crop and jitter the video using indexing. The spatial crop is performed on
         # the entire array, so each frame is cropped in the same location. The temporal
         # jitter takes place via the selection of consecutive frames
-        buffer = buffer[:, time_index:time_index + clip_len,
+        buffer = buffer[time_index:time_index + clip_len,
                  height_index:height_index + crop_size,
-                 width_index:width_index + crop_size]
+                 width_index:width_index + crop_size, :]
 
-        return buffer
-
-    def normalize(self, buffer):
-        # Normalize the buffer
-        # NOTE: Default values of RGB images normalization are used, as precomputed
-        # mean and std_dev values (akin to ImageNet) were unavailable for Kinetics. Feel
-        # free to push to and edit this section to replace them if found.
-        buffer = (buffer - 128) / 128
         return buffer
 
     def __len__(self):
