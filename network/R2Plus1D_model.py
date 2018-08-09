@@ -292,7 +292,7 @@ def get_10x_lr_params(model):
 if __name__ == "__main__":
     import torch
     inputs = torch.rand(1, 3, 16, 112, 112)
-    net = R2Plus1DClassifier(101, (2, 2, 2, 2), pretrained=True)
+    net = R2Plus1DClassifier(101, (2, 2, 2, 2), pretrained=False)
 
     outputs = net.forward(inputs)
     print(outputs.size())

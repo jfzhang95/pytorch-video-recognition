@@ -25,6 +25,7 @@ class VideoDataset(Dataset):
         self.root_dir, self.output_dir = Path.db_dir(dataset)
         folder = os.path.join(self.output_dir, split)
         self.clip_len = clip_len
+        self.split = split
 
         # the following three parameters are chosen as described in the paper section 4.1
         self.resize_height = 128
@@ -55,14 +56,34 @@ class VideoDataset(Dataset):
         # convert the list of label names into an array of label indices
         self.label_array = np.array([self.label2index[label] for label in labels], dtype=int)
 
+        if dataset == "ucf101":
+            if not os.path.exists('dataloaders/ucf_labels.txt'):
+                with open('dataloaders/ucf_labels.txt', 'w') as f:
+                    for id, label in enumerate(sorted(self.label2index)):
+                        f.writelines(str(id+1) + ' ' + label + '\n')
+
+        elif dataset == 'hmdb51':
+            if not os.path.exists('dataloaders/hmdb_labels.txt'):
+                with open('dataloaders/hmdb_labels.txt', 'w') as f:
+                    for id, label in enumerate(sorted(self.label2index)):
+                        f.writelines(str(id+1) + ' ' + label + '\n')
+
+
+
+    def __len__(self):
+        return len(self.fnames)
+
     def __getitem__(self, index):
         # loading and preprocessing.
         buffer = self.load_frames(self.fnames[index])
         buffer = self.crop(buffer, self.clip_len, self.crop_size)
-        buffer = self.randomflip(buffer)
-        buffer = self.to_tensor(self.normalize(buffer))
         labels = np.array(self.label_array[index])
 
+        if self.split != 'test':
+            # perform data augmentation
+            buffer = self.randomflip(buffer)
+        buffer = self.normalize(buffer)
+        buffer = self.to_tensor(buffer)
         return torch.from_numpy(buffer), torch.from_numpy(labels)
 
     def check_integrity(self):
@@ -174,8 +195,8 @@ class VideoDataset(Dataset):
 
         if np.random.random() < 0.5:
             for i, frame in enumerate(buffer):
-                frame = cv2.flip(frame, flipCode=1)
-                buffer[i] = frame
+                frame = cv2.flip(buffer[i], flipCode=1)
+                buffer[i] = cv2.flip(frame, flipCode=1)
 
         return buffer
 
@@ -217,8 +238,7 @@ class VideoDataset(Dataset):
 
         return buffer
 
-    def __len__(self):
-        return len(self.fnames)
+
 
 
 
