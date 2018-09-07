@@ -49,8 +49,11 @@ Currently, I only trained C3D model in UCF and HMDB datasets. The train/val/test
 accuracy and loss curves for each experiment are shown below:
 
 - **UCF101**
+
 ![ucf_results](assets/ucf101_results.png)
+
 - **HMDB51**
+
 ![hmdb_results](assets/hmdb51_results.png)
 
 Experiments for other models will be updated soon ...
