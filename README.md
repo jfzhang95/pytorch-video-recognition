@@ -3,8 +3,6 @@
 <table>
    <tr>
        <td><img src="assets/demo1.gif"></td>
-   </tr>
-   <tr>
        <td><img src="assets/demo2.gif"></td>
    </tr>
 </table>
