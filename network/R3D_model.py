@@ -18,7 +18,7 @@ class SpatioTemporalConv(nn.Module):
         bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=False):
         super(SpatioTemporalConv, self).__init__()
 
         # if ints are entered, convert them to iterables, 1 -> [1, 1, 1]

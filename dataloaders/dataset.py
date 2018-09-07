@@ -27,7 +27,7 @@ class VideoDataset(Dataset):
         self.clip_len = clip_len
         self.split = split
 
-        # the following three parameters are chosen as described in the paper section 4.1
+        # The following three parameters are chosen as described in the paper section 4.1
         self.resize_height = 128
         self.resize_width = 171
         self.crop_size = 112
@@ -40,8 +40,8 @@ class VideoDataset(Dataset):
             print('Preprocessing of {} dataset, this will take long, but it will be done only once.'.format(dataset))
             self.preprocess()
 
-        # obtain all the filenames of files inside all the class folders
-        # going through each class folder one at a time
+        # Obtain all the filenames of files inside all the class folders
+        # Going through each class folder one at a time
         self.fnames, labels = [], []
         for label in sorted(os.listdir(folder)):
             for fname in os.listdir(os.path.join(folder, label)):
@@ -51,9 +51,9 @@ class VideoDataset(Dataset):
         assert len(labels) == len(self.fnames)
         print('Number of {} videos: {:d}'.format(split, len(self.fnames)))
 
-        # prepare a mapping between the label names (strings) and indices (ints)
+        # Prepare a mapping between the label names (strings) and indices (ints)
         self.label2index = {label: index for index, label in enumerate(sorted(set(labels)))}
-        # convert the list of label names into an array of label indices
+        # Convert the list of label names into an array of label indices
         self.label_array = np.array([self.label2index[label] for label in labels], dtype=int)
 
         if dataset == "ucf101":
@@ -69,18 +69,17 @@ class VideoDataset(Dataset):
                         f.writelines(str(id+1) + ' ' + label + '\n')
 
 
-
     def __len__(self):
         return len(self.fnames)
 
     def __getitem__(self, index):
-        # loading and preprocessing.
+        # Loading and preprocessing.
         buffer = self.load_frames(self.fnames[index])
         buffer = self.crop(buffer, self.clip_len, self.crop_size)
         labels = np.array(self.label_array[index])
 
-        if self.split != 'test':
-            # perform data augmentation
+        if self.split == 'test':
+            # Perform data augmentation
             buffer = self.randomflip(buffer)
         buffer = self.normalize(buffer)
         buffer = self.to_tensor(buffer)
@@ -152,7 +151,7 @@ class VideoDataset(Dataset):
         print('Preprocessing finished.')
 
     def process_video(self, video, action_name, save_dir):
-        # initialize a VideoCapture object to read video data into a numpy array
+        # Initialize a VideoCapture object to read video data into a numpy array
         video_filename = video.split('.')[0]
         if not os.path.exists(os.path.join(save_dir, video_filename)):
             os.mkdir(os.path.join(save_dir, video_filename))
@@ -163,6 +162,7 @@ class VideoDataset(Dataset):
         frame_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+        # Make sure splited video has at least 16 frames
         EXTRACT_FREQUENCY = 4
         if frame_count // EXTRACT_FREQUENCY <= 16:
             EXTRACT_FREQUENCY -= 1
@@ -187,7 +187,7 @@ class VideoDataset(Dataset):
                 i += 1
             count += 1
 
-        # release the VideoCapture once it is no longer needed
+        # Release the VideoCapture once it is no longer needed
         capture.release()
 
     def randomflip(self, buffer):
@@ -225,11 +225,11 @@ class VideoDataset(Dataset):
         # randomly select time index for temporal jittering
         time_index = np.random.randint(buffer.shape[0] - clip_len)
 
-        # randomly select start indices in order to crop the video
+        # Randomly select start indices in order to crop the video
         height_index = np.random.randint(buffer.shape[1] - crop_size)
         width_index = np.random.randint(buffer.shape[2] - crop_size)
 
-        # crop and jitter the video using indexing. The spatial crop is performed on
+        # Crop and jitter the video using indexing. The spatial crop is performed on
         # the entire array, so each frame is cropped in the same location. The temporal
         # jitter takes place via the selection of consecutive frames
         buffer = buffer[time_index:time_index + clip_len,

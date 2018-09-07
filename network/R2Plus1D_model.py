@@ -46,9 +46,6 @@ class SpatioTemporalConv(nn.Module):
             self.spatial_conv = nn.Conv3d(in_channels, intermed_channels, spatial_kernel_size,
                                           stride=spatial_stride, padding=spatial_padding, bias=bias)
             self.bn1 = nn.BatchNorm3d(intermed_channels)
-            self.bn2 = nn.BatchNorm3d(out_channels)
-            self.relu = nn.ReLU()
-
             # the temporal conv is effectively a 1D conv, but has batch norm
             # and ReLU added inside the model constructor, not here. This is an
             # intentional design choice, to allow this module to externally act
@@ -56,6 +53,8 @@ class SpatioTemporalConv(nn.Module):
             # other codebase
             self.temporal_conv = nn.Conv3d(intermed_channels, out_channels, temporal_kernel_size,
                                            stride=temporal_stride, padding=temporal_padding, bias=bias)
+            self.bn2 = nn.BatchNorm3d(out_channels)
+            self.relu = nn.ReLU()
         else:
             # decomposing the parameters into spatial and temporal components by
             # masking out the values with the defaults on the axis that

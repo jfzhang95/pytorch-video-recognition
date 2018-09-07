@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from dataloaders.dataset import VideoDataset
-from network import C3D_model, R2Plus1D_model
+from network import C3D_model, R2Plus1D_model, R3D_model
 
 # Use GPU if available else revert to CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -21,8 +21,8 @@ print("Device being used:", device)
 nEpochs = 100  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True # See evolution of the test set when training
-nTestInterval = 25 # Run on test set every nTestInterval epochs
-snapshot = 25 # Store a model every snapshot epochs
+nTestInterval = 20 # Run on test set every nTestInterval epochs
+snapshot = 50 # Store a model every snapshot epochs
 lr = 1e-3 # Learning rate
 
 dataset = 'ucf101' # Options: hmdb51 or ucf101
@@ -46,8 +46,8 @@ else:
     run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
 
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
-modelName = 'C3D' # Options: C3D or R2Plus1D
-
+modelName = 'C3D' # Options: C3D or R2Plus1D or R3D
+saveName = modelName + '-' + dataset
 
 def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=lr,
                 num_epochs=nEpochs, save_epoch=snapshot, useTest=useTest, test_interval=nTestInterval):
@@ -65,6 +65,9 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
         model = R2Plus1D_model.R2Plus1DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
         train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr': lr},
                         {'params': R2Plus1D_model.get_10x_lr_params(model), 'lr': lr * 10}]
+    elif modelName == 'R3D':
+        model = R3D_model.R3DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
+        train_params = model.parameters()
     else:
         print('We only implemented C3D and R2Plus1D models.')
         raise NotImplementedError
@@ -76,10 +79,10 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
     else:
-        checkpoint = torch.load(os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(resume_epoch - 1) + '.pth.tar'),
+        checkpoint = torch.load(os.path.join(save_dir, 'models', saveName + '_epoch-' + str(resume_epoch - 1) + '.pth.tar'),
                        map_location=lambda storage, loc: storage)   # Load all tensors onto the CPU
         print("Initializing weights from: {}...".format(
-            os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(resume_epoch - 1) + '.pth.tar')))
+            os.path.join(save_dir, 'models', saveName + '_epoch-' + str(resume_epoch - 1) + '.pth.tar')))
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['opt_dict'])
 
@@ -91,9 +94,9 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
     writer = SummaryWriter(log_dir=log_dir)
 
     print('Training model on {} dataset...'.format(dataset))
-    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train',clip_len=16), batch_size=16, shuffle=True, num_workers=4)
-    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val',  clip_len=16), batch_size=16, num_workers=4)
-    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=16, num_workers=4)
+    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train',clip_len=16), batch_size=20, shuffle=True, num_workers=4)
+    val_dataloader   = DataLoader(VideoDataset(dataset=dataset, split='val',  clip_len=16), batch_size=20, num_workers=4)
+    test_dataloader  = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=20, num_workers=4)
 
     trainval_loaders = {'train': train_dataloader, 'val': val_dataloader}
     trainval_sizes = {x: len(trainval_loaders[x].dataset) for x in ['train', 'val']}
@@ -106,7 +109,7 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
 
             # reset the running loss and corrects
             running_loss = 0.0
-            running_corrects = 0
+            running_corrects = 0.0
 
             # set model to train() or eval() mode depending on whether it is trained
             # or being validated. Primarily affects layers such as BatchNorm or Dropout.
@@ -123,7 +126,12 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 labels = Variable(labels).to(device)
                 optimizer.zero_grad()
 
-                outputs = model(inputs)
+                if phase == 'train':
+                    outputs = model(inputs)
+                else:
+                    with torch.no_grad():
+                        outputs = model(inputs)
+
                 probs = nn.Softmax(dim=1)(outputs)
                 preds = torch.max(probs, 1)[1]
                 loss = criterion(outputs, labels)
@@ -154,15 +162,15 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'opt_dict': optimizer.state_dict(),
-            }, os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(epoch) + '.pth.tar'))
-            print("Save model at {}\n".format(os.path.join(save_dir, 'models', modelName + '_' + dataset + '_epoch-' + str(epoch) + '.pth.tar')))
+            }, os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
+            print("Save model at {}\n".format(os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
 
         if useTest and epoch % test_interval == (test_interval - 1):
             model.eval()
             start_time = timeit.default_timer()
 
             running_loss = 0.0
-            running_corrects = 0
+            running_corrects = 0.0
 
             for inputs, labels in tqdm(test_dataloader):
                 inputs = inputs.to(device)
