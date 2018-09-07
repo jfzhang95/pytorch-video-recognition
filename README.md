@@ -49,8 +49,7 @@ The code was tested with Anaconda and Python 3.5. After installing the Anaconda 
 ## Experiments
 These models were trained in machine with NVIDIA TITAN X 12gb GPU. Note that I splited
 train/val/test data for each dataset using sklearn. If you want to train models using
-official train/val/test data, you can look in the repo in the folder dataloaders for a
-file called dataset.py, and modify it to your needs.
+official train/val/test data, you can look in [dataset.py](https://github.com/jfzhang95/pytorch-video-recognition/blob/master/dataloaders/dataset.py), and modify it to your needs.
 
 Currently, I only trained C3D model in UCF and HMDB datasets. The train/val/test
 accuracy and loss curves for each experiment are shown below:
