@@ -1,5 +1,14 @@
 # pytorch-video-recognition
 
+<table>
+   <tr>
+       <td><img src="assets/demo1.gif"></td>
+   </tr>
+   <tr>
+       <td><img src="assets/demo2.gif"></td>
+   </tr>
+</table>
+
 ## Introduction
 This repo contains several models for video action recognition,
 including C3D, R2Plus1D, R3D, inplemented using PyTorch(0.4.0).
@@ -50,10 +59,10 @@ accuracy and loss curves for each experiment are shown below:
 
 - **UCF101**
 
-<p align="center"><img src="assets/ucf101_results.png" align="center" width=1000 height=auto/></p>
+<p align="center"><img src="assets/ucf101_results.png" align="center" width=900 height=auto/></p>
 
 - **HMDB51**
 
-<p align="center"><img src="assets/hmdb51_results.png" align="center" width=1000 height=auto/></p>
+<p align="center"><img src="assets/hmdb51_results.png" align="center" width=900 height=auto/></p>
 
 Experiments for other models will be updated soon ...
