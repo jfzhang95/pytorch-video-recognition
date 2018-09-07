@@ -1,6 +1,6 @@
 # pytorch-video-recognition
 
-<table>
+<table border="0">
    <tr>
        <td><img src="assets/demo1.gif" frame=void rules=none></td>
        <td><img src="assets/demo2.gif" frame=void rules=none></td>
