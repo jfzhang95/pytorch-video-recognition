@@ -2,14 +2,14 @@
 
 <table>
    <tr>
-       <td><img src="assets/demo1.gif"></td>
-       <td><img src="assets/demo2.gif"></td>
+       <td><img src="assets/demo1.gif" frame=void rules=none></td>
+       <td><img src="assets/demo2.gif" frame=void rules=none></td>
    </tr>
 </table>
 
 ## Introduction
 This repo contains several models for video action recognition,
-including C3D, R2Plus1D, R3D, inplemented using PyTorch(0.4.0).
+including C3D, R2Plus1D, R3D, inplemented using PyTorch (0.4.0).
 Currently, we train these models on UCF101 and HMDB51 datasets.
 **More models and datasets will be available soon!**
 
