@@ -48,6 +48,48 @@ The code was tested with Anaconda and Python 3.5. After installing the Anaconda 
     python train.py
     ```
 
+## Datasets:
+
+I used two different datasets: UCF101 and HMDB.
+
+Dataset directory tree is shown below
+
+- **UCF101**
+Make sure to put the files as the following structure:
+  ```
+  UCF-101
+  ├── ApplyEyeMakeup
+  │   ├── v_ApplyEyeMakeup_g01_c01.avi
+  │   └── ...
+  ├── ApplyLipstick
+  │   ├── v_ApplyLipstick_g01_c01.avi
+  │   └── ...
+  └── Archery
+  │   ├── v_Archery_g01_c01.avi
+  │   └── ...
+  ```
+And the output dir's structure is as follows:
+  ```
+  ucf101
+  ├── ApplyEyeMakeup
+  │   ├── v_ApplyEyeMakeup_g01_c01
+  │   │   ├── 00001.jpg
+  │   │   └── ...
+  │   └── ...
+  ├── ApplyLipstick
+  │   ├── v_ApplyLipstick_g01_c01
+  │   │   ├── 00001.jpg
+  │   │   └── ...
+  │   └── ...
+  └── Archery
+  │   ├── v_Archery_g01_c01
+  │   │   ├── 00001.jpg
+  │   │   └── ...
+  │   └── ...
+  ```
+
+Note: HMDB dataset's directory tree is similar to UCF101 dataset.
+
 ## Experiments
 These models were trained in machine with NVIDIA TITAN X 12gb GPU. Note that I splited
 train/val/test data for each dataset using sklearn. If you want to train models using
