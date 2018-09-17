@@ -68,7 +68,7 @@ Make sure to put the files as the following structure:
   │   ├── v_Archery_g01_c01.avi
   │   └── ...
   ```
-And the output dir's structure is as follows:
+After pre-processing, the output dir's structure is as follows:
   ```
   ucf101
   ├── ApplyEyeMakeup
@@ -88,7 +88,7 @@ And the output dir's structure is as follows:
   │   └── ...
   ```
 
-Note: HMDB dataset's directory tree is similar to UCF101 dataset.
+Note: HMDB dataset's directory tree is similar to UCF101 dataset's.
 
 ## Experiments
 These models were trained in machine with NVIDIA TITAN X 12gb GPU. Note that I splited
