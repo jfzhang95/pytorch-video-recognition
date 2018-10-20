@@ -34,7 +34,8 @@ The code was tested with Anaconda and Python 3.5. After installing the Anaconda 
     pip install tqdm scikit-learn tensorboardX
     ```
 
-2. Download pretrained model from [BaiduYun](https://pan.baidu.com/s/1saNqGBkzZHwZpG-A5RDLVw).
+2. Download pretrained model from [BaiduYun](https://pan.baidu.com/s/1saNqGBkzZHwZpG-A5RDLVw) or 
+[GoogleDrive](https://drive.google.com/file/d/19NWziHWh1LgCcHU34geoKwYezAogv9fX/view?usp=sharing).
    Currently only support pretrained model for C3D.
 
 3. Configure your dataset and pretrained model path in
