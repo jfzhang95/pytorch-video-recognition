@@ -31,7 +31,7 @@ def main():
     checkpoint = torch.load('run/run_1/models/C3D_ucf101_epoch-39.pth.tar', map_location=lambda storage, loc: storage)
     model.load_state_dict(checkpoint['state_dict'])
     model.to(device)
-    model.train()
+    model.eval()
 
     # read video
     video = '/Path/to/UCF-101/ApplyLipstick/v_ApplyLipstick_g04_c02.avi'
